@@ -3,341 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SmartDesign - 專業跨平台室內設計系統</title>
+    <title>SmartDesign - 專業室內設計 CAD 渲染系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap');
-        body { font-family: 'Noto+Sans+TC', sans-serif; background-color: #f1f5f9; margin: 0; padding: 0; overscroll-behavior: none; }
-        .canvas-bg { background-image: radial-gradient(#cbd5e1 0.6px, transparent 0.6px); background-size: 25px 25px; }
-        
-        /* 牆體與結構 */
-        .wall-outer { stroke: #000; stroke-width: 6; fill: #fff; }
-        .wall-inner-struct { stroke: #333; stroke-width: 4; fill: #fff; cursor: move; }
-        .wall-end-cap { stroke: #000; stroke-width: 1.5; }
-        .pillar { fill: #111; stroke: #000; stroke-width: 1; }
-        
-        /* 專業符號樣式 */
-        .door-arc-prof { stroke: #94a3b8; stroke-width: 1; stroke-dasharray: 3; fill: none; }
-        .door-leaf-prof { stroke: #1e293b; stroke-width: 2.5; fill: none; }
-        .window-frame { stroke: #0ea5e9; stroke-width: 7; cursor: move; }
-        .sliding-pane { fill: #fff; stroke: #64748b; stroke-width: 1; }
-
-        /* 家具與櫃體 */
-        .furniture { fill: #f8fafc; stroke: #6366f1; stroke-width: 1.5; cursor: move; transition: all 0.2s; }
-        .cabinet-hatch { stroke: #cbd5e1; stroke-width: 0.8; pointer-events: none; }
-        .furniture:hover, .wall-inner-struct:hover, .interact-box:hover { filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.4)); }
-        .dragging { opacity: 0.5 !important; stroke: #4f46e5 !important; }
+        body { font-family: 'Noto+Sans+TC', sans-serif; background-color: #e2e8f0; margin: 0; padding: 0; overscroll-behavior: none; overflow: hidden; }
+        .canvas-bg { background-color: #cbd5e1; }
+        .wall-outer { stroke: #1e293b; stroke-width: 6; fill: #ffffff; }
+        .wall-outer-render { stroke: #0f172a; stroke-width: 7; fill: url(#wood-floor); filter: url(#wall-shadow); }
+        .wall-inner-struct { stroke: #334155; stroke-width: 4; fill: #ffffff; cursor: move; }
+        .wall-inner-render { stroke: #0f172a; stroke-width: 5; fill: #475569; filter: url(#wall-shadow); cursor: move; }
+        .wall-end-cap { stroke: #1e293b; stroke-width: 1.5; }
+        .pillar { fill: #0f172a; stroke: #000; stroke-width: 1; cursor: move; }
+        .pillar-render { fill: #1e293b; stroke: #0f172a; stroke-width: 1.5; filter: url(#soft-shadow); cursor: move; }
+        .door-arc-prof { stroke: #94a3b8; stroke-width: 1.5; stroke-dasharray: 4; fill: none; }
+        .door-leaf-prof { stroke: #334155; stroke-width: 3; fill: none; }
+        .door-leaf-render { stroke: #78350f; stroke-width: 3.5; fill: none; }
+        .window-frame { stroke: #0ea5e9; stroke-width: 6; cursor: move; }
+        .window-frame-render { stroke: #38bdf8; stroke-width: 7; filter: url(#soft-shadow); cursor: move; }
+        .sliding-pane { fill: #ffffff; stroke: #64748b; stroke-width: 1.5; }
+        .furniture { fill: #f8fafc; stroke: #64748b; stroke-width: 1.5; cursor: move; transition: filter 0.2s; }
+        .cabinet-hatch { stroke: #cbd5e1; stroke-width: 1; pointer-events: none; }
         .furniture-dimmed { opacity: 0.15; filter: grayscale(1); pointer-events: none; }
-        
         .interact-box { fill: transparent; cursor: move; }
-
-        /* 標註系統 */
-        .text-label { font-size: 11px; font-weight: 700; fill: #1e293b; text-anchor: middle; pointer-events: none; }
+        .item-group:hover .furniture, .item-group:hover .wall-inner-struct { filter: drop-shadow(0 4px 6px rgba(0,0,0,0.15)); }
+        .selection-box { fill: rgba(59, 130, 246, 0.05); stroke: #3b82f6; stroke-width: 1.5; stroke-dasharray: 4; pointer-events: none; }
+        .rotate-handle { fill: #ffffff; stroke: #3b82f6; stroke-width: 2; cursor: crosshair; }
+        .rotate-line { stroke: #3b82f6; stroke-width: 1.5; pointer-events: none; }
+        .text-label { font-size: 11px; font-weight: 700; fill: #334155; text-anchor: middle; pointer-events: none; }
+        .text-label-render { font-size: 11px; font-weight: 800; fill: #ffffff; text-anchor: middle; pointer-events: none; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.8)); }
         .dim-text { font-size: 10px; fill: #ef4444; font-weight: 600; text-anchor: middle; font-family: monospace; }
         .dim-line { stroke: #ef4444; stroke-width: 1; }
-
-        /* 畫布視角動畫 */
-        #svg-canvas { transform-origin: center; transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1); }
-        .active-tab { @apply bg-indigo-600 text-white shadow-lg; }
-        
-        .list-item { transition: all 0.2s; border-left: 4px solid transparent; }
-        .list-item:hover { border-left-color: #6366f1; background-color: #f1f5f9; }
-
-        /* 手機版選單切換動畫 */
-        #mobile-sidebar { transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        #svg-canvas { transform-origin: top left; touch-action: none; }
+        .grab-cursor { cursor: grab !important; }
+        .grabbing-cursor { cursor: grabbing !important; }
+        #mobile-sidebar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .sidebar-open { transform: translateX(0) !important; }
-        #sidebar-overlay { transition: opacity 0.3s ease; }
-
-        /* 隱藏捲軸但保留功能 */
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .palette-btn { @apply flex flex-col items-center justify-center p-2 border border-slate-200 rounded-lg bg-white hover:bg-indigo-50 hover:border-indigo-400 transition-all gap-1 text-[10px] font-bold text-slate-600 shadow-sm active:scale-95 cursor-grab; }
         @media print { .no-print { display: none !important; } body { background: white; } }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
-    <!-- 頂部導覽列 -->
-    <header class="bg-slate-900 px-4 md:px-8 py-3 flex justify-between items-center shadow-xl z-50 no-print">
-        <div class="flex items-center gap-3 md:gap-4">
-            <button onclick="toggleMobileSidebar()" class="md:hidden text-white p-2 hover:bg-white/10 rounded-lg transition-colors">
-                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    <header class="bg-slate-900 h-14 flex justify-between items-center px-4 z-50 no-print shrink-0 shadow-md relative">
+        <div class="flex items-center gap-3">
+            <button onclick="toggleMobileSidebar()" class="md:hidden text-white p-1 hover:bg-slate-800 rounded">
+                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
             </button>
-            <div class="bg-indigo-500 p-1.5 md:p-2 rounded-xl text-white shadow-lg">
-                <svg width="20" height="20" class="md:w-6 md:h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            <div class="bg-indigo-600 p-1.5 rounded-lg text-white shadow-lg shadow-indigo-500/20">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
             </div>
-            <div>
-                <h1 class="text-xl md:text-2xl font-black text-white italic tracking-tighter">SmartDesign</h1>
-            </div>
+            <h1 class="text-lg font-black text-white tracking-tight">SmartDesign</h1>
         </div>
-        <div class="flex gap-2">
-            <button onclick="fitToViewport()" class="hidden sm:flex px-4 py-2 bg-slate-700 text-white text-[10px] font-bold rounded-full hover:bg-slate-600 transition-all uppercase tracking-widest items-center">
-                適應視窗
-            </button>
-            <button onclick="window.print()" class="px-4 py-1.5 md:px-5 md:py-2 bg-indigo-600 text-white text-[10px] md:text-xs font-black rounded-full hover:bg-indigo-500 transition-all shadow-lg flex items-center gap-2">
-                <span class="hidden sm:inline">匯出 PDF</span>
-                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
-            </button>
+        
+        <div class="flex items-center gap-2">
+            <button onclick="updateMode('furniture')" id="btn-mode-furn" class="px-2.5 py-1 rounded bg-indigo-600 text-white text-[10px] font-bold shadow">配置圖</button>
+            <button onclick="updateMode('construction')" id="btn-mode-cons" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 text-[10px] font-bold border border-slate-700">施工圖</button>
+            <button onclick="updateMode('render')" id="btn-mode-rend" class="px-2.5 py-1 rounded bg-slate-800 text-emerald-400 text-[10px] font-bold border border-slate-700">彩色預染</button>
         </div>
     </header>
 
     <div class="flex-1 flex overflow-hidden relative">
-        <!-- 手機版半透明背景遮罩 -->
-        <div id="sidebar-overlay" onclick="toggleMobileSidebar()" class="md:hidden absolute inset-0 bg-slate-900/50 backdrop-blur-sm z-30 opacity-0 pointer-events-none transition-opacity"></div>
+        <div id="sidebar-overlay" onclick="toggleMobileSidebar()" class="md:hidden absolute inset-0 bg-slate-900/50 backdrop-blur-[2px] z-40 opacity-0 pointer-events-none transition-opacity"></div>
 
-        <!-- 側邊控制面板 (電腦版顯示, 手機版抽屜式) -->
-        <aside id="mobile-sidebar" class="absolute md:relative inset-y-0 left-0 w-[85%] sm:w-[380px] md:w-[400px] lg:w-[450px] bg-white border-r border-slate-200 overflow-hidden shrink-0 no-print shadow-2xl flex flex-col z-40 -translate-x-full md:translate-x-0">
-            
-            <!-- 分頁導覽 (優化手機橫向滑動) -->
-            <div class="flex border-b text-center sticky top-0 bg-white z-10 overflow-x-auto scrollbar-hide bg-slate-50">
-                <button onclick="switchTab('layout')" id="tab-layout" class="flex-none w-1/5 py-4 text-[10px] font-black border-b-2 border-indigo-600 text-indigo-600 uppercase">佈局</button>
-                <button onclick="switchTab('reference')" id="tab-reference" class="flex-none w-1/5 py-4 text-[10px] font-black border-b-2 border-transparent text-slate-400 uppercase">底圖</button>
-                <button onclick="switchTab('struct')" id="tab-struct" class="flex-none w-1/5 py-4 text-[10px] font-black border-b-2 border-transparent text-slate-400 uppercase">結構</button>
-                <button onclick="switchTab('cabinets')" id="tab-cabinets" class="flex-none w-1/5 py-4 text-[10px] font-black border-b-2 border-transparent text-slate-400 uppercase">櫃體</button>
-                <button onclick="switchTab('furniture')" id="tab-furniture" class="flex-none w-1/5 py-4 text-[10px] font-black border-b-2 border-transparent text-slate-400 uppercase">AI</button>
+        <aside id="mobile-sidebar" class="absolute md:relative inset-y-0 left-0 w-[280px] sm:w-80 bg-white border-r border-slate-200 flex flex-col z-50 -translate-x-full md:translate-x-0 shadow-2xl md:shadow-none">
+            <div class="flex border-b text-center sticky top-0 bg-white z-10 shrink-0">
+                <button onclick="switchTab('layout')" id="tab-layout" class="flex-1 py-3 text-[11px] font-black border-b-2 border-indigo-600 text-indigo-600 uppercase">空間</button>
+                <button onclick="switchTab('library')" id="tab-library" class="flex-1 py-3 text-[11px] font-black border-b-2 border-transparent text-slate-400 uppercase">圖庫</button>
+                <button onclick="switchTab('ai')" id="tab-ai" class="flex-1 py-3 text-[11px] font-black border-b-2 border-transparent text-slate-400 uppercase">AI</button>
             </div>
 
-            <div class="p-5 md:p-6 space-y-8 flex-1 overflow-y-auto pb-32">
-                <!-- 空間佈局面板 -->
-                <div id="panel-layout" class="space-y-6">
-                    <section class="space-y-4">
-                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest block">空間基準 (cm)</label>
+            <div class="flex-1 overflow-y-auto relative">
+                <div id="panel-layout" class="p-4 space-y-6">
+                    <section class="space-y-3">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest block">空間形狀</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="updateShape('rect')" id="btn-rect" class="p-2 border-2 rounded-xl border-indigo-600 bg-indigo-50 text-indigo-700 font-bold text-[10px]">矩形</button>
+                            <button onclick="updateShape('l-shape')" id="btn-l-shape" class="p-2 border-2 border-slate-100 rounded-xl text-slate-500 font-bold text-[10px] hover:bg-slate-50">L 型</button>
+                        </div>
+                    </section>
+                    <section class="space-y-3">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest block">主尺寸設定 (cm)</label>
                         <div class="grid grid-cols-2 gap-3">
-                            <div><span class="text-[9px] font-bold text-slate-400 block mb-1">寬度 W1</span><input type="number" id="num-w1" value="1100" class="w-full p-3 bg-slate-50 border rounded-xl text-sm font-mono focus:ring-2 focus:ring-indigo-500 outline-none"></div>
-                            <div><span class="text-[9px] font-bold text-slate-400 block mb-1">深度 H1</span><input type="number" id="num-h1" value="850" class="w-full p-3 bg-slate-50 border rounded-xl text-sm font-mono focus:ring-2 focus:ring-indigo-500 outline-none"></div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2 mt-4">
-                            <button onclick="updateShape('rect')" id="btn-rect" class="p-3 border-2 rounded-2xl active-tab font-black text-[10px] uppercase">矩形</button>
-                            <button onclick="updateShape('l-shape')" id="btn-l-shape" class="p-3 border-2 border-slate-100 rounded-2xl text-slate-400 font-black text-[10px] uppercase">L 型</button>
+                            <div class="space-y-1"><span class="text-[9px] font-bold text-slate-400">總寬 W1</span><input type="number" id="num-w1" value="1100" class="w-full p-2 bg-slate-50 border rounded-lg text-sm font-mono outline-none focus:border-indigo-400"></div>
+                            <div class="space-y-1"><span class="text-[9px] font-bold text-slate-400">總深 H1</span><input type="number" id="num-h1" value="850" class="w-full p-2 bg-slate-50 border rounded-lg text-sm font-mono outline-none focus:border-indigo-400"></div>
                         </div>
                     </section>
-                </div>
-
-                <!-- 背景參考底圖 -->
-                <div id="panel-reference" class="hidden space-y-6">
-                    <section class="p-8 rounded-[2rem] bg-indigo-50 border-2 border-dashed border-indigo-200 text-center">
+                    <section class="space-y-3 border-t pt-4">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest block">底圖描繪輔助</label>
                         <input type="file" id="ref-upload" accept="image/*" class="hidden" onchange="handleRefUpload(event)">
-                        <button onclick="document.getElementById('ref-upload').click()" class="bg-indigo-600 text-white px-6 py-2.5 rounded-2xl text-[11px] font-black shadow-lg uppercase">上傳底圖</button>
-                        <p class="text-[9px] text-slate-400 mt-4 leading-relaxed">上傳後調整透明度進行精確描繪</p>
-                    </section>
-                    <div id="ref-controls" class="hidden space-y-4">
-                        <div class="space-y-2">
-                            <div class="flex justify-between text-[10px] font-black text-slate-500">透明度 <span id="ref-opacity-val" class="text-indigo-600 font-black text-xs">50%</span></div>
-                            <input type="range" id="ref-opacity" min="0" max="100" value="50" oninput="updateRefImg()" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none accent-indigo-600">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 牆門窗結構 -->
-                <div id="panel-struct" class="hidden space-y-6">
-                    <section class="space-y-4">
-                        <label class="text-[10px] font-black text-indigo-600 uppercase tracking-widest">🏗️ 結構組件庫</label>
-                        <div class="grid grid-cols-2 gap-2">
-                            <button onclick="addItem('wall')" class="p-4 border rounded-xl text-[10px] font-black hover:bg-indigo-50 transition-all flex flex-col items-center gap-2">新增隔間牆</button>
-                            <button onclick="addItem('door_single')" class="p-4 border rounded-xl text-[10px] font-black hover:bg-indigo-50 transition-all flex flex-col items-center gap-2">專業單開門</button>
-                            <button onclick="addItem('door_unequal')" class="p-4 border rounded-xl text-[10px] font-black hover:bg-indigo-50 transition-all flex flex-col items-center gap-2">專業子母門</button>
-                            <button onclick="addItem('window_sliding')" class="p-4 border rounded-xl text-[10px] font-black hover:bg-indigo-50 transition-all flex flex-col items-center gap-2">雙橫拉窗</button>
-                        </div>
-                    </section>
-                </div>
-
-                <!-- 櫃體系統 (v18) -->
-                <div id="panel-cabinets" class="hidden space-y-6">
-                    <section class="space-y-4">
-                        <label class="text-[10px] font-black text-indigo-600 uppercase tracking-widest">📐 櫃體系統 (X型標示)</label>
-                        <div class="grid grid-cols-2 gap-2">
-                            <button onclick="addItem('cabinet_wardrobe')" class="p-4 border-2 border-indigo-100 rounded-xl text-[10px] font-black hover:bg-indigo-50 bg-indigo-50/20">＋ 系統衣櫃</button>
-                            <button onclick="addItem('cabinet_shoe')" class="p-4 border-2 border-indigo-100 rounded-xl text-[10px] font-black hover:bg-indigo-50 bg-indigo-50/20">＋ 鞋櫃/薄櫃</button>
-                        </div>
-                    </section>
-                </div>
-
-                <!-- AI 分析面板 -->
-                <div id="panel-furniture" class="hidden space-y-6 text-center">
-                    <button onclick="askGemini()" class="w-full py-4 bg-indigo-600 text-white rounded-2xl text-[10px] font-black shadow-xl uppercase tracking-widest mb-4">執行動線分析分析</button>
-                    <div id="ai-loading" class="hidden"><span class="text-[10px] font-black animate-pulse uppercase">AI Calculating...</span></div>
-                    <div id="ai-response" class="hidden bg-slate-50 p-4 rounded-2xl max-h-60 overflow-y-auto text-[10px] border border-slate-200 leading-relaxed text-left italic"></div>
-                </div>
-
-                <!-- 物件管理清單 -->
-                <div class="border-t pt-8">
-                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 block">物件細部管理</label>
-                    <div id="component-list" class="space-y-4"></div>
-                </div>
-            </div>
-        </aside>
-
-        <!-- 畫布顯示區 -->
-        <main id="main-viewport" class="flex-1 canvas-bg flex flex-col items-center justify-center p-2 overflow-hidden relative">
-            <!-- 專業縮放控制器 -->
-            <div class="absolute bottom-6 right-6 z-20 flex flex-col gap-3 no-print scale-90 md:scale-100">
-                <button onclick="changeZoom(0.2)" class="w-14 h-14 bg-white rounded-2xl shadow-2xl flex items-center justify-center font-bold text-2xl border border-slate-200 text-indigo-600 active:scale-90 transition-all">＋</button>
-                <button onclick="fitToViewport()" class="w-14 h-14 bg-white rounded-2xl shadow-2xl flex items-center justify-center font-black text-[10px] border border-slate-200 text-slate-400 uppercase tracking-tighter">FIT</button>
-                <button onclick="changeZoom(-0.2)" class="w-14 h-14 bg-white rounded-2xl shadow-2xl flex items-center justify-center font-bold text-2xl border border-slate-200 text-indigo-600 active:scale-90 transition-all">－</button>
-            </div>
-
-            <div id="svg-scroller" class="w-full h-full overflow-auto flex flex-col items-center justify-center p-4 sm:p-20 scrollbar-hide">
-                <div id="svg-paper" class="bg-white shadow-[0_100px_250px_-50px_rgba(0,0,0,0.3)] relative border border-slate-300">
-                    <div id="svg-wrapper"></div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <script>
-        const apiKey = "";
-        const state = { 
-            shape: 'rect', w1: 1100, h1: 850, zoom: 0.8, items: [], dragging: null, dragOffset: { x: 0, y: 0 },
-            refImg: { url: null, x: 0, y: 0, w: 900, h: 700, opacity: 0.5 }
-        };
-
-        const draw = {
-            pillar: (x, y, s=40) => `<rect x="${x-s/2}" y="${y-s/2}" width="${s}" height="${s}" class="pillar" />`,
-            item: (i) => {
-                const isDragging = state.dragging && state.dragging.id === i.id;
-                const dragClass = isDragging ? 'dragging' : '';
-                const rotAttr = `transform="rotate(${i.rot || 0}, ${i.w/2}, ${i.h/2}) scale(${i.flip ? -1 : 1}, 1)"`;
-                let symbol = "";
-
-                if (i.type === 'wall') symbol = `<rect width="${i.w}" height="${i.h}" class="wall-inner-struct ${dragClass}" ${rotAttr} />`;
-                else if (i.type === 'door_single') symbol = `<g ${rotAttr}><line x1="0" y1="0" x2="0" y2="12" class="wall-end-cap" /><line x1="${i.w}" y1="0" x2="${i.w}" y2="12" class="wall-end-cap" /><path d="M 0 0 Q 0 ${-i.w} ${i.w} ${-i.w}" class="door-arc-prof" /><line x1="0" y1="0" x2="0" y2="${-i.w}" class="door-leaf-prof" /><rect width="${i.w}" height="${i.w}" class="interact-box" /></g>`;
-                else if (i.type === 'door_unequal') {
-                    const lW = i.w * 0.7; const sW = i.w * 0.3;
-                    symbol = `<g ${rotAttr}><path d="M 0 0 Q 0 ${-lW} ${lW} ${-lW}" class="door-arc-prof" /><line x1="0" y1="0" x2="0" y2="${-lW}" class="door-leaf-prof" /><path d="M ${i.w} 0 Q ${i.w} ${-sW} ${i.w-sW} ${-sW}" class="door-arc-prof" /><line x1="${i.w}" y1="0" x2="${i.w}" y2="${-sW}" class="door-leaf-prof" /><rect width="${i.w}" height="${lW}" class="interact-box" /></g>`;
-                }
-                else if (i.type === 'window_sliding') symbol = `<g ${rotAttr}><rect width="${i.w}" height="${i.h}" class="window-frame ${dragClass}" /><rect x="0" y="${i.h*0.2}" width="${i.w*0.55}" height="${i.h*0.3}" class="sliding-pane" /><rect x="${i.w*0.45}" y="${i.h*0.5}" width="${i.w*0.55}" height="${i.h*0.3}" class="sliding-pane" /><rect width="${i.w}" height="${i.h}" class="interact-box" /></g>`;
-                else if (i.type.startsWith('cabinet_')) symbol = `<g ${rotAttr}><rect width="${i.w}" height="${i.h}" class="furniture ${dragClass}" /><line x1="0" y1="0" x2="${i.w}" y2="${i.h}" class="cabinet-hatch" /><line x1="${i.w}" y1="0" x2="0" y2="${i.h}" class="cabinet-hatch" /><text x="${i.w/2}" y="${i.h/2+4}" class="text-label" opacity="0.4" style="font-size:7px">${i.name}</text><rect width="${i.w}" height="${i.h}" class="interact-box" /></g>`;
-                else symbol = `<g ${rotAttr}><rect width="${i.w}" height="${i.h}" rx="5" class="furniture ${dragClass}" /><text x="${i.w/2}" y="${i.h/2+5}" class="text-label" opacity="0.4">${i.name}</text><rect width="${i.w}" height="${i.h}" class="interact-box" /></g>`;
-
-                return `<g transform="translate(${i.x}, ${i.y})" onmousedown="startDrag(event, ${i.id})" ontouchstart="startDrag(event, ${i.id})">${symbol}</g>`;
-            },
-            dim: (x1, y1, x2, y2, val, offset=40) => {
-                const isH = y1 === y2;
-                return `<g><line x1="${x1}" y1="${isH ? y1-offset : y1}" x2="${x2}" y2="${isH ? y2-offset : y2}" class="dim-line" opacity="0.3"/><text x="${(x1+x2)/2}" y="${isH ? y1-offset-8 : (y1+y2)/2}" class="dim-text">${val} cm</text></g>`;
-            }
-        };
-
-        // --- 跨平台互動控制 ---
-        function toggleMobileSidebar() {
-            const sidebar = document.getElementById('mobile-sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
-            const isOpen = sidebar.classList.toggle('sidebar-open');
-            overlay.style.opacity = isOpen ? '1' : '0';
-            overlay.style.pointerEvents = isOpen ? 'auto' : 'none';
-        }
-
-        function fitToViewport() {
-            const scroller = document.getElementById('main-viewport');
-            const paper = document.getElementById('svg-paper');
-            if (!scroller || !paper) return;
-            const vW = scroller.clientWidth * 0.95; const vH = scroller.clientHeight * 0.95;
-            const pW = state.w1 + 200; const pH = state.h1 + 200;
-            state.zoom = Math.min(vW / pW, vH / pH, 1.1); updateZoom();
-        }
-
-        function handleRefUpload(e) {
-            const file = e.target.files[0]; if (!file) return;
-            const reader = new FileReader(); reader.onload = (event) => { state.refImg.url = event.target.result; document.getElementById('ref-controls').classList.remove('hidden'); render(); }; reader.readAsDataURL(file);
-        }
-
-        function updateRefImg() {
-            state.refImg.opacity = document.getElementById('ref-opacity').value / 100;
-            document.getElementById('ref-opacity-val').innerText = `${Math.round(state.refImg.opacity * 100)}%`;
-            render();
-        }
-
-        function addItem(type) {
-            const id = Date.now();
-            const defs = {
-                wall: { w: 300, h: 12, name: '隔間牆', rot: 0 }, door_single: { w: 90, h: 90, name: '房門', rot: 0 },
-                door_unequal: { w: 120, h: 120, name: '子母門', rot: 0 }, window_sliding: { w: 150, h: 12, name: '橫拉窗', rot: 0 },
-                cabinet_wardrobe: { w: 180, h: 60, name: '衣櫃', rot: 0 }, cabinet_shoe: { w: 120, h: 35, name: '鞋櫃', rot: 0 },
-                bed: { w: 150, h: 190, name: '雙人床', rot: 0 }, sofa: { w: 220, h: 90, name: '沙發', rot: 0 }
-            };
-            state.items.push({ id, type, ...defs[type], x: 450, y: 450 }); updateComponentList(); render();
-        }
-
-        function rotateItem(id) { const i = state.items.find(x => x.id === id); if(i) { i.rot = (i.rot + 90) % 360; render(); } }
-        function removeItem(id) { state.items = state.items.filter(x => x.id !== id); updateComponentList(); render(); }
-        function updateItemProp(id, key, val) { const i = state.items.find(x => x.id === id); if(i) { i[key] = parseInt(val) || 0; render(); } }
-
-        function updateComponentList() {
-            const container = document.getElementById('component-list');
-            container.innerHTML = state.items.map(i => `
-                <div class="list-item p-4 bg-slate-50 border border-slate-100 rounded-2xl space-y-3 shadow-sm">
-                    <div class="flex justify-between items-center"><span class="text-[10px] font-black text-indigo-900 uppercase">${i.name}</span>
-                    <div class="flex gap-2"><button onclick="rotateItem(${i.id})" class="bg-white p-1 px-2 border rounded-lg text-indigo-500 text-[9px] font-black uppercase">Rotate</button>
-                    <button onclick="removeItem(${i.id})" class="bg-white p-1 px-2 border border-red-100 text-red-500 text-[9px] font-black uppercase">Del</button></div></div>
-                    <div class="grid grid-cols-2 gap-2 text-[9px] font-bold text-slate-400 uppercase">
-                        <div>寬 W (cm)<input type="number" value="${i.w}" oninput="updateItemProp(${i.id}, 'w', this.value)" class="w-full p-2 border rounded-lg mt-0.5 text-xs font-mono"></div>
-                        <div>深 D (cm)<input type="number" value="${i.h}" oninput="updateItemProp(${i.id}, 'h', this.value)" class="w-full p-2 border rounded-lg mt-0.5 text-xs font-mono"></div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // --- 拖拉交互 (支援滑鼠與觸控) ---
-        function startDrag(evt, id) {
-            evt.preventDefault();
-            const item = state.items.find(i => i.id === id); if (!item) return;
-            state.dragging = item; 
-            const pt = getSVGPoint(evt);
-            state.dragOffset = { x: pt.x - item.x, y: pt.y - item.y }; render();
-        }
-        function handleMove(evt) { 
-            if (!state.dragging) return; 
-            const pt = getSVGPoint(evt);
-            state.dragging.x = Math.round(pt.x - state.dragOffset.x);
-            state.dragging.y = Math.round(pt.y - state.dragOffset.y);
-            render(); 
-        }
-        function stopDrag() { if (state.dragging) { state.dragging = null; render(); updateComponentList(); } }
-        
-        function getSVGPoint(evt) {
-            const svg = document.querySelector('#svg-canvas');
-            const pt = svg.createSVGPoint();
-            const clientX = (evt.touches && evt.touches.length) ? evt.touches[0].clientX : evt.clientX;
-            const clientY = (evt.touches && evt.touches.length) ? evt.touches[0].clientY : evt.clientY;
-            pt.x = clientX; pt.y = clientY;
-            return pt.matrixTransform(svg.getScreenCTM().inverse());
-        }
-
-        function switchTab(tab) {
-            ['layout', 'reference', 'struct', 'cabinets', 'furniture'].forEach(t => {
-                const panel = document.getElementById(`panel-${t}`);
-                const btn = document.getElementById(`tab-${t}`);
-                if (panel) panel.classList.toggle('hidden', t !== tab);
-                if (btn) btn.className = `flex-none w-1/5 py-4 text-[10px] font-black border-b-2 transition-all ${t===tab ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'}`;
-            });
-        }
-
-        function render() {
-            const { shape, w1, h1, refImg } = state;
-            const P = 100; const W = w1, H = h1;
-            let walls = ""; let contents = ""; let refLayer = "";
-            if (refImg.url) refLayer = `<image href="${refImg.url}" x="${P}" y="${P}" width="${refImg.w}" height="${refImg.h}" opacity="${refImg.opacity}" pointer-events="none" />`;
-            const path = (shape === 'rect') ? `M ${P} ${P} h ${W} v ${H} h -${W} Z` : `M ${P} ${P} h ${W} v ${H} h -400 v -350 h -${W-400} Z`;
-            walls += `<path d="${path}" class="wall-outer" />`;
-            walls += draw.pillar(P, P); walls += draw.pillar(P+W, P);
-            state.items.forEach(i => contents += draw.item(i));
-            contents += draw.dim(P, P, P+W, P, W.toString(), 30);
-            contents += draw.dim(P-30, P, P-30, P+H, H.toString(), 0);
-            const totalW = W + P*2, totalH = H + P*2;
-            const svg = `<svg id="svg-canvas" width="${totalW}" height="${totalH}" onmousemove="handleMove(event)" onmouseup="stopDrag()" ontouchmove="handleMove(event)" ontouchend="stopDrag()">
-                <rect width="100%" height="100%" fill="white" />
-                ${refLayer}${walls}${contents}
-            </svg>`;
-            document.getElementById('svg-wrapper').innerHTML = svg;
-            updateZoom();
-        }
-
-        function updateShape(s) { state.shape = s; render(); }
-        function changeZoom(d) { state.zoom = Math.max(0.1, Math.min(3, state.zoom + d)); updateZoom(); }
-        function updateZoom() { if (document.getElementById('svg-canvas')) document.getElementById('svg-canvas').style.transform = `scale(${state.zoom})`; }
-
-        document.getElementById('num-w1').oninput = (e) => { state.w1 = parseInt(e.target.value) || 0; render(); };
-        document.getElementById('num-h1').oninput = (e) => { state.h1 = parseInt(e.target.value) || 0; render(); };
-
-        window.onload = () => { render(); setTimeout(fitToViewport, 400); };
-    </script>
-</body>
-</html>
+                        <button onclick="document.getElementById('ref-upload').click()" class="w-full py-2 bg-white text-indigo-600 font-bold text-[10px] rounded-lg border border-indigo-200 hover:bg-indigo-50 shadow-sm">上傳平面底圖</button>
+                        <div id="ref-controls" class="hidden space-y-3 mt-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                            <div class="flex justify-between text-[9px] font-bold text-slate-500"><span>透明度</span><span id="ref-opacity-val">50%</span></div>
+                            <input type="range" id="ref-opacity" min="0" max="100" value="50" oninput="updateRefImg()" class="w-full accent-indigo-600">
+                            <div class="grid grid-cols-2 gap-2 pt-2">
+                                <div><span class="text-[8px] text-slate-400">底圖寬</span><input type="number" id="ref-w" value="800" oninput="updateRefImg()" class="w-full p-1.5 border rounded text-xs font-mono"></div>
+                                <div><span class="text-[8px] text-slate-400">底圖高</span><input type="number" id="ref-h" value="600" oninput="updateRefImg()" class="w-full p-1.5 border rounded text-xs font-mono"></div>
+                            </div>
+                            <but
